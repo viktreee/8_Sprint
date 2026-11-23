@@ -1,3 +1,4 @@
+// Package main demonstrates parcel tracking with SQLite.
 package main
 
 import (
@@ -8,12 +9,14 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// Parcel statuses follow the delivery sequence.
 const (
 	ParcelStatusRegistered = "registered"
 	ParcelStatusSent       = "sent"
 	ParcelStatusDelivered  = "delivered"
 )
 
+// Parcel holds a parcel's tracking and delivery details.
 type Parcel struct {
 	Number    int
 	Client    int
@@ -22,14 +25,17 @@ type Parcel struct {
 	CreatedAt string
 }
 
+// ParcelService manages parcel registration and delivery.
 type ParcelService struct {
 	store ParcelStore
 }
 
+// NewParcelService returns a service backed by store.
 func NewParcelService(store ParcelStore) ParcelService {
 	return ParcelService{store: store}
 }
 
+// Register saves a new parcel and returns it with its tracking number.
 func (s ParcelService) Register(client int, address string) (Parcel, error) {
 	parcel := Parcel{
 		Client:    client,
@@ -51,6 +57,7 @@ func (s ParcelService) Register(client int, address string) (Parcel, error) {
 	return parcel, nil
 }
 
+// PrintClientParcels prints the parcels belonging to client.
 func (s ParcelService) PrintClientParcels(client int) error {
 	parcels, err := s.store.GetByClient(client)
 	if err != nil {
@@ -67,6 +74,7 @@ func (s ParcelService) PrintClientParcels(client int) error {
 	return nil
 }
 
+// NextStatus advances a parcel one step until it is delivered.
 func (s ParcelService) NextStatus(number int) error {
 	parcel, err := s.store.Get(number)
 	if err != nil {
@@ -88,18 +96,26 @@ func (s ParcelService) NextStatus(number int) error {
 	return s.store.SetStatus(number, nextStatus)
 }
 
+// ChangeAddress updates the address only while the parcel is registered.
 func (s ParcelService) ChangeAddress(number int, address string) error {
 	return s.store.SetAddress(number, address)
 }
 
+// Delete removes the parcel only while it is registered.
 func (s ParcelService) Delete(number int) error {
 	return s.store.Delete(number)
 }
 
+// main demonstrates the parcel lifecycle using tracker.db.
 func main() {
-	// настройте подключение к БД
+	db, err := sql.Open("sqlite", "tracker.db")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer db.Close()
 
-	store := // создайте объект ParcelStore функцией NewParcelStore
+	store := NewParcelStore(db)
 	service := NewParcelService(store)
 
 	// регистрация посылки
